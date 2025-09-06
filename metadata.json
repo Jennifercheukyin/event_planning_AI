@@ -1,0 +1,7 @@
+{
+  "name": "Nano Banana Event Planner",
+  "description": "A proof-of-concept web application that uses a multi-modal AI model to generate event venue layouts from an image and a text prompt. Upload a venue photo, describe your event, and see a new, decorated version of the space.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
