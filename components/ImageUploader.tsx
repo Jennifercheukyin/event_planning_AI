@@ -1,4 +1,3 @@
-
 import React, { useCallback, useState } from 'react';
 import type { UploadedFile, LocationType, FileType } from '../types';
 import { Icon } from './Icon';
@@ -12,7 +11,14 @@ interface ImageUploaderProps {
   onVenueWebsiteUpdate: (website: string) => void;
 }
 
-export const ImageUploader: React.FC<ImageUploaderProps> = ({ files, onFilesUpdate, location, onLocationUpdate, venueWebsite, onVenueWebsiteUpdate }) => {
+export const ImageUploader: React.FC<ImageUploaderProps> = ({ 
+  files, 
+  onFilesUpdate, 
+  location, 
+  onLocationUpdate, 
+  venueWebsite, 
+  onVenueWebsiteUpdate 
+}) => {
   const [isDragging, setIsDragging] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
@@ -29,7 +35,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ files, onFilesUpda
             type: fileType,
             name: file.name,
           });
-          onFilesUpdate([...newFiles]); // Create a new array to trigger re-render
+          onFilesUpdate([...newFiles]);
         };
         reader.readAsDataURL(file);
       }
@@ -41,141 +47,166 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ files, onFilesUpda
       handleFiles(event.target.files);
     }
   };
-  
+
   const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
-    event.stopPropagation();
     setIsDragging(false);
-    if (event.dataTransfer.files) {
+    if (event.dataTransfer.files.length > 0) {
       handleFiles(event.dataTransfer.files);
     }
   }, [handleFiles]);
-  
-  const handleRemoveFile = (index: number) => {
-      onFilesUpdate(files.filter((_, i) => i !== index));
-  };
-  
-  const handleGetLocation = () => {
-      if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-              (position) => {
-                  onLocationUpdate({
-                      latitude: position.coords.latitude,
-                      longitude: position.coords.longitude,
-                  });
-                  setLocationError(null);
-              },
-              (error) => {
-                  setLocationError(`Error: ${error.message}`);
-              }
-          );
-      } else {
-          setLocationError("Geolocation is not supported by this browser.");
-      }
-  }
 
-  const commonDragEvents = {
-    onDragOver: (e: React.DragEvent<HTMLDivElement>) => e.preventDefault(),
-    onDragEnter: (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragging(true); },
-    onDragLeave: (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragging(false); },
+  const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const removeFile = (index: number) => {
+    const newFiles = files.filter((_, i) => i !== index);
+    onFilesUpdate(newFiles);
   };
-  
-  const getLocationInputValue = () => {
-    if (!location) return '';
-    if (typeof location === 'string') return location;
-    return `Lat: ${location.latitude.toFixed(4)}, Lon: ${location.longitude.toFixed(4)}`;
-  }
+
+  const getLocation = () => {
+    setLocationError(null);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          onLocationUpdate({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        },
+        (error) => {
+          setLocationError('Unable to get location. Please enter manually.');
+          console.error('Error getting location:', error);
+        }
+      );
+    } else {
+      setLocationError('Geolocation is not supported by your browser.');
+    }
+  };
 
   return (
     <div className="space-y-4">
-      {/* File Previews */}
+      {/* Modern Upload Area */}
+      <div
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        className={`
+          relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300
+          ${isDragging 
+            ? 'border-purple-500 bg-purple-50 scale-[1.02]' 
+            : 'border-gray-300 bg-gray-50 hover:border-purple-400 hover:bg-purple-50/50'
+          }
+        `}
+      >
+        <input
+          type="file"
+          multiple
+          accept="image/*,video/*"
+          onChange={handleFileChange}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        />
+        
+        <div className="pointer-events-none">
+          <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Icon type="upload" className="w-8 h-8 text-purple-600" />
+          </div>
+          <p className="text-lg font-semibold text-gray-800 mb-1">
+            {isDragging ? 'Drop your files here!' : 'Drop venue photos here'}
+          </p>
+          <p className="text-sm text-gray-500">
+            or click to browse • Supports images and videos
+          </p>
+        </div>
+      </div>
+
+      {/* File Preview Grid */}
       {files.length > 0 && (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {files.map((file, index) => (
-            <div key={index} className="relative group aspect-square">
-              {file.type === 'image' ? (
-                <img src={file.base64} alt={file.name} className="w-full h-full object-cover rounded-md" />
-              ) : (
-                <div className="w-full h-full bg-gray-800 rounded-md flex flex-col items-center justify-center text-white p-1">
-                    <Icon type="video" className="w-8 h-8" />
-                    <span className="text-xs text-center truncate w-full mt-1">{file.name}</span>
-                </div>
-              )}
-              <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
-                <button onClick={() => handleRemoveFile(index)} className="text-white bg-red-500 hover:bg-red-600 rounded-full p-2 transition-colors">
-                  <Icon type="trash" className="w-5 h-5" />
-                </button>
+            <div key={index} className="relative group">
+              <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                {file.type === 'image' ? (
+                  <img 
+                    src={file.base64} 
+                    alt={file.name} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-100 to-pink-100">
+                    <Icon type="video" className="w-8 h-8 text-purple-600" />
+                  </div>
+                )}
               </div>
+              <button
+                onClick={() => removeFile(index)}
+                className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center hover:bg-red-600"
+              >
+                <span className="text-xs">×</span>
+              </button>
+              <p className="mt-1 text-xs text-gray-600 truncate">{file.name}</p>
             </div>
           ))}
         </div>
       )}
 
-      {/* Drop Zone */}
-      <div 
-        onDrop={handleDrop}
-        {...commonDragEvents}
-        className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${isDragging ? 'border-brand-accent bg-blue-50' : 'border-gray-300 bg-gray-50'}`}
-      >
+      {/* Location and Website Section */}
+      <div className="space-y-3">
+        {/* Location Input */}
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Enter venue address or location..."
+            value={typeof location === 'string' ? location : location ? `${location.latitude}, ${location.longitude}` : ''}
+            onChange={(e) => onLocationUpdate(e.target.value || null)}
+            className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none transition-colors text-sm"
+          />
+          <button
+            onClick={getLocation}
+            className="px-4 py-2.5 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition-colors flex items-center gap-2 text-sm font-medium"
+          >
+            <Icon type="location" className="w-4 h-4" />
+            <span className="hidden sm:inline">Get Location</span>
+          </button>
+        </div>
+        
+        {locationError && (
+          <p className="text-xs text-red-500 mt-1">{locationError}</p>
+        )}
+
+        {/* Website Input */}
         <input
-          type="file"
-          accept="image/*,video/*"
-          onChange={handleFileChange}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          id="file-upload"
-          multiple
+          type="url"
+          placeholder="Venue website (optional)..."
+          value={venueWebsite}
+          onChange={(e) => onVenueWebsiteUpdate(e.target.value)}
+          className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none transition-colors text-sm"
         />
-        <label htmlFor="file-upload" className="flex flex-col items-center justify-center cursor-pointer">
-          <Icon type="upload" className="w-10 h-10 text-gray-400 mb-3" />
-          <p className="font-semibold text-gray-700">
-            <span className="text-brand-accent">Click to upload</span> or drag and drop
-          </p>
-          <p className="text-sm text-gray-500">Images or Videos</p>
-        </label>
-      </div>
-      
-      {/* Geolocation */}
-      <div className="space-y-2">
-         <label htmlFor="location-input" className="block text-sm font-medium text-gray-700">
-            Venue Location (Optional)
-         </label>
-         <div className="flex items-center gap-2">
-            <input
-                id="location-input"
-                type="text"
-                placeholder="e.g., Paris, France"
-                value={getLocationInputValue()}
-                onChange={(e) => onLocationUpdate(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-shadow"
-            />
-            <button 
-                onClick={handleGetLocation} 
-                className="p-2 border border-gray-300 rounded-md hover:bg-gray-100 transition-colors flex-shrink-0"
-                aria-label="Use current location"
-                title="Use current location"
-            >
-                <Icon type="map-pin" className="w-5 h-5 text-brand-accent"/>
-            </button>
-         </div>
-         {locationError && (
-             <p className="text-sm text-red-500 mt-1">{locationError}</p>
-         )}
       </div>
 
-      {/* Venue Website */}
-      <div className="space-y-2">
-         <label htmlFor="website-input" className="block text-sm font-medium text-gray-700">
-            Venue Website (Optional)
-         </label>
-         <input
-            id="website-input"
-            type="url"
-            placeholder="https://examplevenue.com"
-            value={venueWebsite}
-            onChange={(e) => onVenueWebsiteUpdate(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-shadow"
-         />
-      </div>
+      {/* Upload Summary */}
+      {(files.length > 0 || location || venueWebsite) && (
+        <div className="bg-purple-50 rounded-lg p-3 space-y-1">
+          <p className="text-sm font-medium text-purple-900">Ready to transform:</p>
+          <ul className="text-xs text-purple-700 space-y-0.5">
+            {files.length > 0 && (
+              <li>• {files.length} {files.length === 1 ? 'file' : 'files'} uploaded</li>
+            )}
+            {location && (
+              <li>• Location {typeof location === 'string' ? 'provided' : 'captured'}</li>
+            )}
+            {venueWebsite && (
+              <li>• Website added</li>
+            )}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };

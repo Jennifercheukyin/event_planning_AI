@@ -178,40 +178,95 @@ export async function getEventBlueprint(
         // Use Gemini 2.5 Flash for analysis with cleaned images
         const model = genAI.getGenerativeModel({ model: ANALYSIS_MODEL });
         
-        // Create comprehensive analysis prompt
+        // Create comprehensive analysis prompt with precise mapping requirements
         const blueprintPrompt = `
-You are an expert event planner analyzing a venue for an event.
+You are an expert venue analyst and event planner. Your task is to PRECISELY map and analyze the actual venue shown in these images.
 
 Event Request: ${prompt || 'General event planning'}
 Location: ${location ? (typeof location === 'string' ? location : `Coordinates: ${location.latitude}, ${location.longitude}`) : 'Not specified'}
 Venue Website: ${venueWebsite || 'Not provided'}
 
-Based on the venue images provided, create a detailed event blueprint that includes:
+CRITICAL RULES:
+1. DO NOT HALLUCINATE OR MAKE UP FEATURES - only describe what you can actually see
+2. BE SPECIFIC about locations - use directional references (north/south/left/right from camera view)
+3. ESTIMATE dimensions based on visible references (people, doors, cars, etc.)
 
-1. **Venue Analysis**
-   - Type of venue (ballroom, conference center, outdoor space, etc.)
-   - Estimated capacity
-   - Key architectural features
-   - Available amenities
+Perform a PRECISE SPATIAL ANALYSIS:
 
-2. **Event Layout Design**
-   - Optimal space utilization for: ${prompt}
-   - Guest flow and circulation patterns
-   - Key zones: entrance, main event space, service areas
-   - Staging and technical setup areas
+## STEP 1: VENUE IDENTIFICATION
+First, identify what type of venue this is based on visual evidence:
+- Outdoor lawn/garden: Note if it's residential, park, estate, etc.
+- Indoor space: Ballroom, warehouse, hall, etc.
+- Mixed indoor/outdoor: Describe both areas
 
-3. **Visual Transformation Plan**
-   - Lighting recommendations
-   - Decoration placement
-   - Color scheme suggestions
-   - Furniture arrangement
+## STEP 2: DETAILED SPATIAL MAPPING
 
-4. **Three Specific Views to Generate**
-   - Floor Plan View: Describe the top-down layout
-   - Front/Entrance View: Describe how guests will see the venue upon arrival
-   - Main Event Space View: Describe the primary event area setup
+### For OUTDOOR VENUES:
+Create a detailed map describing:
+- **Overall shape and boundaries**: "The lawn is L-shaped with the main section running east-west (approx 60x40ft) and a smaller section extending north (20x30ft)"
+- **Terrain features**: 
+  * "Ground slopes down 3-4ft from north to south"
+  * "Level area in the center approximately 30x30ft"
+  * "Raised garden bed along eastern edge, 2ft high"
+- **Natural elements with exact positions**:
+  * "Large oak tree (trunk ~3ft diameter) in northwest corner"
+  * "Row of 6 palm trees along southern boundary, spaced ~10ft apart"
+  * "Rose garden in southeast corner, circular, ~15ft diameter"
+- **Hard surfaces**:
+  * "Concrete patio 20x15ft adjacent to building on west side"
+  * "Brick pathway 4ft wide curves from northwest entrance to east side"
+- **Structures & boundaries**:
+  * "White wooden fence 4ft high on north and east sides"
+  * "Stone retaining wall 3ft high along southern slope"
+  * "Building/house on west side with French doors opening to lawn"
 
-Please be specific about spatial arrangements, decorative elements, and how to transform the venue for this event.
+### For INDOOR VENUES:
+Create a detailed map describing:
+- **Room dimensions & shape**: "Main hall is rectangular 80x50ft with 20ft ceiling"
+- **Architectural features**:
+  * "6 columns in two rows of 3, positioned 20ft from each wall"
+  * "Stage alcove on north wall, 30x15ft, raised 3ft"
+  * "Balcony/mezzanine on south side, 60ft long, 15ft deep"
+- **Entry/exit points**: "Main entrance: double doors center south wall, Emergency exits: single doors in each corner"
+- **Windows**: "10 arched windows on east wall, each 8ft tall, starting 6ft from floor"
+- **Fixed features**: "Built-in bar in southwest corner 20ft long, Dance floor inlay center of room 30x30ft"
+
+## STEP 3: ACCURATE MEASUREMENTS
+Use visible references to estimate scale:
+- Standard door = 3ft wide, 7ft tall
+- Average person = 5.5-6ft tall
+- Folding chair = 18" wide
+- Round banquet table = typically 5-6ft diameter
+- Parking space = 9ft wide
+- Car = ~15ft long
+
+## STEP 4: CONSTRAINTS AND LIMITATIONS
+Based on ACTUAL observations:
+- **Unusable areas**: "Northeast corner has exposed tree roots, unsafe for tables"
+- **Access limitations**: "Only vehicle access from south gate, 8ft wide"
+- **Power/utilities**: "Electrical outlets visible on west wall only"
+- **Weather considerations**: "No natural shade except under oak tree"
+- **Ground conditions**: "Grass appears soft/muddy in low area near southern fence"
+
+## STEP 5: EVENT-SPECIFIC LAYOUT
+For the requested event (${prompt}), design a layout using ONLY the actual space:
+
+- **Guest seating/tables**: Place exactly where ground is level and stable
+- **Service areas**: Position based on actual access points and power
+- **Entertainment/stage**: Locate where sight lines work with actual terrain
+- **Traffic flow**: Design paths that follow existing walkways or level ground
+
+Example format:
+"Place ceremony seating (10 rows of 10 chairs) on the level lawn area (center, 30x30ft section). Aisle runs north-south following existing brick path. Altar positioned under oak tree (natural focal point). Cocktail area on concrete patio (west side) where ground is stable and near building access."
+
+## STEP 6: VENUE REALITY CHECK
+Confirm these details:
+- Total usable square footage: [Calculate based on actual visible space]
+- Maximum realistic capacity: [Based on actual space minus obstacles]
+- Required rentals: [Only for things not present - don't assume anything exists]
+- Setup challenges: [Specific to this actual venue]
+
+Your analysis must be so precise that someone could recreate an accurate floor plan from your description alone.
         `;
 
         // Prepare parts for the API call
@@ -292,95 +347,307 @@ export async function generateLayoutFromBlueprint(
         const viewPrompts = [
             {
                 label: "Floor Plan",
-                prompt: `You are an expert architectural renderer specializing in event floor plans.
+                prompt: `You are an expert architectural CAD specialist creating a PRECISE TOP-DOWN FLOOR PLAN based on the ACTUAL venue layout.
 
-CRITICAL INSTRUCTIONS:
-1. Generate a CLEAN, PROFESSIONAL ARCHITECTURAL FLOOR PLAN - not a photo or 3D view
-2. This must be a TOP-DOWN, 2D architectural drawing with NO photographic elements
-3. DO NOT include any UI elements, screenshots marks, or artifacts from the source images
-4. Create a proper technical drawing with clean lines, measurements, and architectural symbols
+CRITICAL REQUIREMENTS:
+1. This MUST be a TRUE BIRD'S-EYE VIEW - looking straight down from above
+2. NO PERSPECTIVE, NO 3D ELEMENTS - pure 2D top-down view
+3. The floor plan MUST accurately represent the EXACT venue from the photos
 
-Based on the venue photos provided (which have been cleaned), create a floor plan that shows:
+VENUE ANALYSIS FROM PHOTOS:
+${blueprintData.blueprint}
 
-ARCHITECTURAL ELEMENTS (use standard symbols):
-- Walls (thick black lines)
-- Doors (arc symbols)
-- Windows (parallel lines)
-- Columns/pillars (circles or squares)
-- Stairs (if present)
+CREATE A PROFESSIONAL TOP-DOWN ARCHITECTURAL FLOOR PLAN:
 
-EVENT LAYOUT based on: ${blueprintData.blueprint}
-- Tables and seating arrangements (circles/rectangles with chair symbols)
-- Stage/presentation area (rectangle with label)
-- Dance floor (if applicable)
-- Registration/reception desk
-- Catering stations
-- Bar area
-- Service areas
-- Emergency exits (clearly marked)
+## VIEW SPECIFICATION:
+- **Perspective**: DIRECTLY FROM ABOVE (90-degree angle looking straight down)
+- **Style**: Technical architectural drawing, like looking at a blueprint
+- **Representation**: 2D only - no 3D elements, no isometric view, no perspective
 
-STYLE REQUIREMENTS:
+## DRAWING REQUIREMENTS:
+
+### 1. TRUE TOP-DOWN REPRESENTATION
+
+**For OUTDOOR VENUES - Bird's-eye view showing:**
+- Exact perimeter/boundary lines of the property
+- Tree canopies as circles (with trunk dot in center)
+- Pathways as parallel lines showing width
+- Buildings as solid rectangles (roof view)
+- Lawn areas with appropriate hatching
+- Garden beds as outlined shapes
+- Fences as dashed or solid lines
+- Elevation contours as thin lines (if slopes exist)
+
+**For INDOOR VENUES - Ceiling removed view showing:**
+- Walls as thick black lines (typically 6" thick)
+- Doors as arcs showing swing direction
+- Windows as double lines in walls
+- Columns as solid circles or squares
+- Built-in fixtures as appropriate shapes
+- Flooring patterns/materials indicated
+- Room labels and dimensions
+
+### 2. ARCHITECTURAL DRAWING STANDARDS
+
+**Line weights (CRITICAL for readability):**
+- Property boundaries: 0.7mm (thick)
+- Building walls: 0.5mm (medium-thick)
+- Doors/windows: 0.35mm (medium)
+- Furniture: 0.25mm (thin)
+- Dimensions/annotations: 0.18mm (very thin)
+- Hatching/patterns: 0.13mm (ultra-thin)
+
+**Standard symbols (TOP VIEW ONLY):**
+- Trees: Circle with center dot (crown diameter)
+- Round tables: Perfect circles
+- Rectangular tables: Rectangles
+- Chairs: Small squares or circles
+- Stage: Rectangle with "STAGE" label
+- Tents: Dashed outline rectangles
+- Restrooms: Standard architectural symbols
+
+### 3. SCALE AND GRID
+
+**Professional scaling:**
+- Scale bar showing: 0' 5' 10' 20' 40'
+- Grid overlay: Light gray lines every 10 feet
+- Dimension strings with arrows
+- All measurements in feet and inches
+
+### 4. EVENT SETUP OVERLAY (TOP VIEW)
+Show all event elements as seen from directly above:
+- Table arrangements (circles and rectangles)
+- Chair positions (small circles around tables)
+- Dance floor (outlined rectangle with diagonal hatching)
+- Bar locations (rectangles with "BAR" label)
+- Buffet lines (long rectangles)
+- Stage/band area (rectangle with equipment layout)
+- Tent positions (dashed outlines)
+
+### 5. TECHNICAL ANNOTATIONS
+
+**Required elements:**
+- Title: "FLOOR PLAN - [Event Type]"
+- Scale: "1/8 inch = 1 foot"
+- Date: Current date
+- Venue: Venue name/location
+- Create a clean title block in the top right corner
+
+**North arrow:** 
+- Place in upper right corner
+- Simple arrow pointing north with "N" label
+
+**Legend (clean, organized):**
+Create a legend box with these items:
+- Property Line (solid thick line)
+- Building Wall (solid medium line)
+- Fence (dashed line)
+- Existing Tree (circle with center dot)
+- Round Table (filled circle)
+- Rectangular Table (rectangle)
+- Dance Floor (hatched area)
+- Stage/Platform (solid rectangle with label)
+
+### 6. DIMENSIONAL ACCURACY
+Include dimension strings showing:
+- Overall property/room dimensions
+- Distances between key features
+- Clearances and aisles (min 4' for accessibility)
+- Service area dimensions
+- Stage/dance floor sizes
+
+## CRITICAL REMINDERS:
+- This is a TECHNICAL DRAWING, not an artistic rendering
+- PURE TOP-DOWN VIEW - no angle, no perspective
+- Like looking at Google Maps satellite view with labels
+- Everything is shown as if the roof/ceiling is removed
+- All elements are drawn as they appear from directly above
+- Clean, precise, professional CAD-style drawing
+
+## OUTPUT STYLE:
 - Clean white background
-- Black lines for structure
-- Light colors for different zones
-- Clear labels for each area
-- Scale indicator
-- North arrow
-- Legend for symbols used
+- Black linework with appropriate weights
+- Gray shading for different areas (10%, 20%, 30% gray)
+- Professional architectural drawing appearance
+- Similar to construction documents or permit drawings
 
-Generate a PROFESSIONAL ARCHITECTURAL FLOOR PLAN suitable for event planning documentation. This should look like it was created in CAD software, NOT like a photograph or screenshot.`
+Generate a PRECISE, PROFESSIONAL, TRUE BIRD'S-EYE VIEW FLOOR PLAN that could be used for actual event planning and setup.`
             },
             {
                 label: "Main Event Space",
-                prompt: `You are an expert event photographer and designer. Using the provided CLEANED venue photo(s), create a PHOTOREALISTIC visualization of the transformed main event space.
+                prompt: `You are an expert event photographer. Create a PHOTOREALISTIC visualization showing the EXACT venue from the photos transformed for the event.
 
-CRITICAL: Generate a HIGH-QUALITY PHOTOGRAPH, not a drawing or diagram. The output should look like a professional event photography shot.
+CRITICAL REQUIREMENTS:
+1. This must be a PHOTOGRAPH of the ACTUAL VENUE - not a generic event space
+2. Maintain ALL architectural features, dimensions, and layout from the original photos
+3. The transformation must work with the REAL constraints identified in the analysis
 
-Using the actual venue from the photos, create a photorealistic image showing:
+VENUE ANALYSIS:
+${blueprintData.blueprint}
 
-VENUE TRANSFORMATION for: ${blueprintData.blueprint}
-- Keep the original venue's architecture, windows, walls, ceiling intact
-- Add elegant event lighting (uplighting, chandeliers, string lights, spotlights)
-- Place appropriate furniture (tables, chairs, lounge areas) based on event type
-- Add decorative elements (flowers, centerpieces, linens, drapery)
-- Include realistic people/guests if appropriate for the scene
-- Show ambient lighting and atmosphere
-- Add any special features (dance floor, photo booth, bars, etc.)
+CREATE A PHOTOREALISTIC IMAGE SHOWING:
 
-PHOTOGRAPHY STYLE:
-- Professional event photography quality
-- Warm, inviting lighting
-- Depth of field and realistic shadows
-- Evening/event ambiance
-- Wide angle showing the full transformed space
+## TIME SETTING: EVENING (7:00 PM)
+- Golden hour transitioning to blue hour
+- Warm ambient lighting throughout
+- Sky visible through windows/outdoors: deep blue-purple twilight
+- All decorative lighting activated
 
-Generate a PHOTOREALISTIC IMAGE that looks like a photograph from a high-end event magazine, showing this exact venue beautifully transformed and ready for the event.`
+## VENUE-SPECIFIC TRANSFORMATION:
+
+**For OUTDOOR VENUES:**
+- Keep the EXACT landscape: every tree, slope, pathway in its actual position
+- Add event setup that works with the terrain:
+  * Tents/canopies only where ground is level
+  * Tables positioned around existing trees
+  * Lighting strung between actual anchor points
+  * Pathways following natural routes
+- Show the actual boundaries (fences, walls, buildings) transformed with:
+  * Uplighting on trees that actually exist
+  * Draping on real structures
+  * Lanterns along actual pathways
+
+**For INDOOR VENUES:**
+- Maintain the EXACT room architecture:
+  * Same ceiling height and style
+  * Windows and doors in actual positions
+  * Columns, alcoves, built-in features unchanged
+- Add transformation elements:
+  * Uplighting on actual walls/columns
+  * Centerpieces on tables placed around real obstacles
+  * Dance floor in the actual open space available
+  * Decor that fits the real dimensions
+
+## SPECIFIC DETAILS TO INCLUDE:
+
+1. **Lighting Design:**
+   - String lights/bistro lights between actual anchor points
+   - Uplighting on real architectural features
+   - Candles/lanterns creating warm glow
+   - Spotlights highlighting actual focal points
+
+2. **Guest Activity:**
+   - 60-80% capacity based on actual space analysis
+   - Guests in semi-formal evening attire
+   - Natural groupings: mingling, seated, dancing
+   - Servers circulating in actual pathways
+
+3. **Event Elements Based on Type:**
+   - Wedding: Ceremony setup where terrain allows
+   - Corporate: Presentation area with sight lines
+   - Party: Dance floor in largest flat area
+   - Gala: Elegant seating maximizing actual space
+
+4. **Authentic Details:**
+   - Catering stations where access exists
+   - Bar positioned near power/water if available
+   - Guest flow following natural paths
+   - Emergency exits kept clear
+
+## PHOTOGRAPHY SPECIFICATIONS:
+- Angle: Wide shot from optimal vantage point
+- Lighting: Professional event photography with golden hour ambiance
+- Focus: Sharp throughout with slight depth of field
+- Style: Editorial quality, like Vogue or Martha Stewart Weddings
+- Mood: Elegant, warm, inviting, sophisticated
+
+## ACCURACY CHECK:
+The transformed venue must be immediately recognizable as the SAME SPACE from the input photos, just decorated for an event. Someone familiar with the venue should say "Yes, that's definitely our space!"
+
+Generate a stunning PHOTOREALISTIC image that shows this EXACT venue transformed for an elegant evening event.`
             },
             {
                 label: "Side View",
-                prompt: `You are an expert event photographer. Using the provided venue photos, create a PHOTOREALISTIC side angle view of the transformed event space.
+                prompt: `You are an expert event photographer. Create a PHOTOREALISTIC SIDE VIEW of the EXACT venue from the photos, transformed for the event.
 
-CRITICAL: Generate a REAL PHOTOGRAPH, not an architectural drawing. The output should look like professional event photography taken from the side of the room.
+CRITICAL: This must show the SAME ACTUAL VENUE from a different angle - not a generic space.
 
-Create a photorealistic image showing the venue from a side perspective:
+VENUE ANALYSIS:
+${blueprintData.blueprint}
 
-CAPTURE THIS ANGLE for: ${blueprintData.blueprint}
-- Show the room from a guest's perspective standing at the side
-- Capture the depth and scale of the transformed space
-- Include the stage/focal point in the background or side
-- Show rows of seating or table arrangements receding into the distance
-- Capture the ceiling height and any hanging decorations
-- Include realistic lighting effects and ambiance
-- Show some guests or staff if appropriate
+CREATE A SIDE-ANGLE PHOTOGRAPH SHOWING:
 
-PHOTOGRAPHY DETAILS:
-- Professional photography quality
-- Natural perspective (not a cross-section)
-- Realistic depth of field
-- Event lighting and atmosphere
-- Capture the energy and elegance of the space
+## CAMERA POSITION & ANGLE:
+- Shot from the side/corner of the actual venue
+- Perspective showing depth and layers of the space
+- Include foreground, middle ground, and background elements
+- Natural guest's-eye-view from standing position
 
-Generate a PHOTOREALISTIC IMAGE that looks like it was taken by a professional event photographer standing at the side of the room, showing the transformed venue with all its decorations, lighting, and setup from this compelling angle.`
+## TIME: EVENING 7:00 PM (Matching Main View)
+- Identical lighting conditions to main event space
+- Same twilight sky visible through windows/outdoors
+- Consistent warm golden hour into blue hour lighting
+- All decorative lights on and glowing
+
+## VENUE-SPECIFIC SIDE VIEW:
+
+**For OUTDOOR VENUES:**
+- Show the terrain's actual slope/levels from the side
+- Capture how tents/structures work with the landscape
+- Display the layering of natural features (trees, garden beds)
+- Show actual boundaries and neighboring structures
+- Include:
+  * String lights creating depth between trees
+  * Guest tables following the terrain
+  * Natural elevation changes visible
+  * Pathways winding through the space
+
+**For INDOOR VENUES:**
+- Capture the actual room depth and height
+- Show architectural features from side angle:
+  * Columns creating perspective
+  * Windows along the wall
+  * Ceiling details and height
+  * Any balconies or level changes
+- Include:
+  * Table arrangements receding into distance
+  * Dance floor relationship to seating
+  * Bar/service areas in proper position
+  * Stage/focal point if applicable
+
+## COMPOSITION ELEMENTS:
+
+1. **Foreground (Closest to camera):**
+   - Partial view of nearest table with place settings
+   - Guests in sharp focus, some in motion
+   - Decorative elements (flowers, candles) in detail
+
+2. **Middle Ground:**
+   - Main event activity area
+   - Multiple tables/seating areas
+   - Clear view of the actual space layout
+   - Servers and guests interacting
+
+3. **Background:**
+   - Focal point (stage, head table, ceremony area)
+   - Architectural features creating depth
+   - Atmospheric lighting and shadows
+   - Windows/exits maintaining venue accuracy
+
+## LIGHTING DETAIL:
+- Warm key light from decorative sources
+- Soft fill from ambient evening light
+- Rim lighting on guests from string lights
+- Candle glow on tables
+- Consistent 7:00 PM evening atmosphere
+
+## SPECIFIC REQUIREMENTS:
+- Show how the event setup works with actual venue constraints
+- Capture the real scale and proportions of the space
+- Include authentic details that match the venue analysis
+- Maintain recognizable venue features from side angle
+
+## PHOTOGRAPHY STYLE:
+- Professional event photography
+- Slightly shallow depth of field (f/2.8-4)
+- Warm color grading matching golden hour
+- Editorial quality composition
+- Natural, candid feeling despite being staged
+
+## AUTHENTICITY CHECK:
+The side view must clearly show this is the SAME VENUE as the main view, just from a different perspective. All architectural features, dimensions, and constraints from the analysis must be visible and accurate.
+
+Generate a stunning PHOTOREALISTIC SIDE VIEW that captures the depth and atmosphere of this EXACT venue during the evening event.`
             }
         ];
 
