@@ -332,35 +332,55 @@ Generate a PROFESSIONAL ARCHITECTURAL FLOOR PLAN suitable for event planning doc
             },
             {
                 label: "Main Event Space",
-                prompt: `You are an expert event designer. Using the provided CLEANED venue photo(s), transform the MAIN EVENT SPACE for the occasion.
+                prompt: `You are an expert event photographer and designer. Using the provided CLEANED venue photo(s), create a PHOTOREALISTIC visualization of the transformed main event space.
 
-IMPORTANT: The images provided have been pre-cleaned to remove UI elements and artifacts. Use these clean images to visualize the transformed space.
+CRITICAL: Generate a HIGH-QUALITY PHOTOGRAPH, not a drawing or diagram. The output should look like a professional event photography shot.
 
-Transform this specific venue's main space by adding:
-- Complete event setup based on: ${blueprintData.blueprint}
-- Appropriate seating arrangement for the space
-- Stage or focal point that fits the venue
-- Professional lighting design
-- Decorations, drapery, and centerpieces
-- Color scheme and theme elements
+Using the actual venue from the photos, create a photorealistic image showing:
 
-Generate a photorealistic image showing THIS EXACT VENUE transformed and ready for the event, maintaining its original architecture while adding all event elements.`
+VENUE TRANSFORMATION for: ${blueprintData.blueprint}
+- Keep the original venue's architecture, windows, walls, ceiling intact
+- Add elegant event lighting (uplighting, chandeliers, string lights, spotlights)
+- Place appropriate furniture (tables, chairs, lounge areas) based on event type
+- Add decorative elements (flowers, centerpieces, linens, drapery)
+- Include realistic people/guests if appropriate for the scene
+- Show ambient lighting and atmosphere
+- Add any special features (dance floor, photo booth, bars, etc.)
+
+PHOTOGRAPHY STYLE:
+- Professional event photography quality
+- Warm, inviting lighting
+- Depth of field and realistic shadows
+- Evening/event ambiance
+- Wide angle showing the full transformed space
+
+Generate a PHOTOREALISTIC IMAGE that looks like a photograph from a high-end event magazine, showing this exact venue beautifully transformed and ready for the event.`
             },
             {
                 label: "Side View",
-                prompt: `You are an expert architectural renderer. Create a SIDE ELEVATION VIEW of the event setup.
+                prompt: `You are an expert event photographer. Using the provided venue photos, create a PHOTOREALISTIC side angle view of the transformed event space.
 
-Generate a clean architectural side view (cross-section) showing:
-- The venue's interior height and proportions
-- Stage/presentation area elevation
-- Seating arrangement from the side
-- Lighting and technical setup positioning
-- Decorative elements placement (draping, banners, etc.)
-- Clear height measurements
+CRITICAL: Generate a REAL PHOTOGRAPH, not an architectural drawing. The output should look like professional event photography taken from the side of the room.
 
-Based on the event requirements: ${blueprintData.blueprint}
+Create a photorealistic image showing the venue from a side perspective:
 
-This should be a clean architectural drawing showing the vertical arrangement of the event space, suitable for understanding sight lines and spatial relationships.`
+CAPTURE THIS ANGLE for: ${blueprintData.blueprint}
+- Show the room from a guest's perspective standing at the side
+- Capture the depth and scale of the transformed space
+- Include the stage/focal point in the background or side
+- Show rows of seating or table arrangements receding into the distance
+- Capture the ceiling height and any hanging decorations
+- Include realistic lighting effects and ambiance
+- Show some guests or staff if appropriate
+
+PHOTOGRAPHY DETAILS:
+- Professional photography quality
+- Natural perspective (not a cross-section)
+- Realistic depth of field
+- Event lighting and atmosphere
+- Capture the energy and elegance of the space
+
+Generate a PHOTOREALISTIC IMAGE that looks like it was taken by a professional event photographer standing at the side of the room, showing the transformed venue with all its decorations, lighting, and setup from this compelling angle.`
             }
         ];
 
@@ -580,33 +600,38 @@ function generateFloorPlanSVG(blueprintData: BlueprintData): string {
 }
 
 /**
- * Generates a side elevation view SVG as fallback
+ * Generates a photorealistic-style side view SVG as fallback
  */
 function generateSideViewSVG(blueprintData: BlueprintData): string {
     const svg = `
         <svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
-            <!-- Background -->
-            <rect width="800" height="600" fill="#f5f5f5"/>
+            <!-- Gradient definitions for photorealistic effect -->
+            <defs>
+                <linearGradient id="sideWallGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color:#2a2a2a"/>
+                    <stop offset="50%" style="stop-color:#3a3a3a"/>
+                    <stop offset="100%" style="stop-color:#2a2a2a"/>
+                </linearGradient>
+                <radialGradient id="sideLighting" cx="50%" cy="40%">
+                    <stop offset="0%" style="stop-color:#fff8dc;stop-opacity:0.5"/>
+                    <stop offset="100%" style="stop-color:#fff8dc;stop-opacity:0"/>
+                </radialGradient>
+                <linearGradient id="floorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#3a3a3a"/>
+                    <stop offset="100%" style="stop-color:#1a1a1a"/>
+                </linearGradient>
+            </defs>
+            
+            <!-- Dark venue background -->
+            <rect width="800" height="600" fill="url(#sideWallGrad)"/>
             
             <!-- Title -->
-            <text x="400" y="30" text-anchor="middle" font-size="24" font-weight="bold" fill="#333">Side Elevation View</text>
-            <text x="400" y="55" text-anchor="middle" font-size="14" fill="#666">Event Space Cross-Section</text>
+            <text x="400" y="30" text-anchor="middle" font-size="20" font-weight="300" fill="#fff" opacity="0.9">Side View</text>
+            <text x="400" y="50" text-anchor="middle" font-size="12" fill="#ddd" opacity="0.7">Photorealistic Angle</text>
             
-            <!-- Grid for scale -->
-            <defs>
-                <pattern id="sideGrid" width="20" height="20" patternUnits="userSpaceOnUse">
-                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e0e0e0" stroke-width="0.3"/>
-                </pattern>
-            </defs>
-            <rect x="100" y="80" width="600" height="400" fill="url(#sideGrid)"/>
-            
-            <!-- Floor and Ceiling Lines -->
-            <line x1="100" y1="400" x2="700" y2="400" stroke="#333" stroke-width="2"/>
-            <line x1="100" y1="150" x2="700" y2="150" stroke="#333" stroke-width="2"/>
-            
-            <!-- Wall outlines -->
-            <line x1="100" y1="150" x2="100" y2="400" stroke="#333" stroke-width="2"/>
-            <line x1="700" y1="150" x2="700" y2="400" stroke="#333" stroke-width="2"/>
+            <!-- Floor with glossy effect -->
+            <rect x="0" y="420" width="800" height="180" fill="url(#floorGrad)"/>
+            <rect x="0" y="420" width="800" height="180" fill="url(#sideLighting)" opacity="0.2"/>
             
             <!-- Stage Platform -->
             <rect x="150" y="360" width="180" height="40" fill="#ffecb3" stroke="#333" stroke-width="1"/>
@@ -680,17 +705,37 @@ function generateSideViewSVG(blueprintData: BlueprintData): string {
 }
 
 /**
- * Generates a main event space SVG as fallback
+ * Generates a photorealistic-style main event space SVG as fallback
  */
 function generateMainSpaceSVG(blueprintData: BlueprintData): string {
     const svg = `
         <svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
-            <!-- Background -->
-            <rect width="800" height="600" fill="#2c3e50"/>
+            <!-- Gradient definitions for realistic lighting -->
+            <defs>
+                <radialGradient id="spotlight1" cx="50%" cy="30%">
+                    <stop offset="0%" style="stop-color:#fff8dc;stop-opacity:0.8"/>
+                    <stop offset="100%" style="stop-color:#fff8dc;stop-opacity:0"/>
+                </radialGradient>
+                <radialGradient id="spotlight2" cx="30%" cy="40%">
+                    <stop offset="0%" style="stop-color:#ffd700;stop-opacity:0.6"/>
+                    <stop offset="100%" style="stop-color:#ffd700;stop-opacity:0"/>
+                </radialGradient>
+                <linearGradient id="wallGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#3a3a3a"/>
+                    <stop offset="100%" style="stop-color:#1a1a1a"/>
+                </linearGradient>
+            </defs>
+            
+            <!-- Dark elegant background -->
+            <rect width="800" height="600" fill="url(#wallGradient)"/>
+            
+            <!-- Floor with reflection effect -->
+            <rect x="0" y="400" width="800" height="200" fill="#2c2c2c"/>
+            <rect x="0" y="400" width="800" height="200" fill="url(#spotlight1)" opacity="0.3"/>
             
             <!-- Title -->
-            <text x="400" y="30" text-anchor="middle" font-size="24" font-weight="bold" fill="white">Main Event Space</text>
-            <text x="400" y="55" text-anchor="middle" font-size="14" fill="#ecf0f1">Transformed Venue Interior</text>
+            <text x="400" y="30" text-anchor="middle" font-size="20" font-weight="300" fill="#fff" opacity="0.9">Main Event Space</text>
+            <text x="400" y="50" text-anchor="middle" font-size="12" fill="#ddd" opacity="0.7">Photorealistic View</text>
             
             <!-- Stage Area -->
             <rect x="200" y="100" width="400" height="150" fill="#34495e" stroke="#ecf0f1" stroke-width="2"/>
